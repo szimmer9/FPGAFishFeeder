@@ -1,2 +1,2 @@
 # FPGAFishFeeder
-Final Project for ECE351.
+Final Project for ECE three-fishy-one.
