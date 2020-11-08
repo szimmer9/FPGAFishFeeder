@@ -29,16 +29,25 @@ begin
       else
         int <= int + 1;
       end if;
-    elsif rising_edge(dec) and en = '1' then
+    end if;
+  end process;
+  
+  process(all)
+  begin
+    if rising_edge(dec) and en = '1' then
       if int = int_lower then
         int <= int_upper;
       else
         int <= int - 1;
       end if;
-    elsif rising_edge(reset) then
+    end if;
+  end process;
+  
+  process(all)
+  begin
+    if rising_edge(reset) then
       int <= int_lower;
     end if;
-    
   end process;
   
   num_out <= std_logic_vector(to_unsigned(int, num_out_msb - num_out_lsb + 1));
