@@ -20,32 +20,24 @@ architecture Behavioral of int_controller is
   signal int : integer range int_lower to int_upper := int_lower;
 begin
 
-  process(all)
+  process(inc, dec, reset)
   begin
     
-    if rising_edge(inc) and en = '1' then
+    if inc = '1' and en = '1' then
       if int = int_upper then
         int <= int_lower;
       else
         int <= int + 1;
       end if;
-    end if;
-  end process;
   
-  process(all)
-  begin
-    if rising_edge(dec) and en = '1' then
+    elsif dec = '1' and en = '1' then
       if int = int_lower then
         int <= int_upper;
       else
         int <= int - 1;
       end if;
-    end if;
-  end process;
   
-  process(all)
-  begin
-    if rising_edge(reset) then
+    elsif reset = '1' then
       int <= int_lower;
     end if;
   end process;
