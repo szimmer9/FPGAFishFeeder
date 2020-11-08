@@ -22,8 +22,11 @@ begin
 
   process(inc, dec, reset)
   begin
+  
+    if reset = '1' then
+      int <= int_lower;
     
-    if inc = '1' and en = '1' then
+    elsif inc = '1' and en = '1' then
       if int = int_upper then
         int <= int_lower;
       else
@@ -37,8 +40,6 @@ begin
         int <= int - 1;
       end if;
   
-    elsif reset = '1' then
-      int <= int_lower;
     end if;
   end process;
   
