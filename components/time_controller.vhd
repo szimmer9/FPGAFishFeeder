@@ -18,13 +18,13 @@ architecture Behavioral of time_controller is
   signal min_inc, min_dec, min_en : std_logic;
 begin
 
-  hr_inc <= inc when hr_min_sel = '0' else '0';
-  hr_dec <= dec when hr_min_sel = '0' else '0';
-  hr_en <= en when hr_min_sel = '0' else '0';
+  hr_inc <= inc and not hr_min_sel;
+  hr_dec <= dec and not hr_min_sel;
+  hr_en <= en and not hr_min_sel;
   
-  min_inc <= inc when hr_min_sel = '1' else '0';
-  min_dec <= dec when hr_min_sel = '1' else '0';
-  min_en <= en when hr_min_sel = '1' else '0';
+  min_inc <= inc and hr_min_sel;
+  min_dec <= dec and hr_min_sel;
+  min_en <= en and hr_min_sel;
 
   hr_controller: entity work.int_controller
     generic map(int_lower => 1,
