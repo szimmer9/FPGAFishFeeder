@@ -23,7 +23,7 @@ begin
   process(inc, dec, reset)
   begin
   
-    if reset = '1' then
+    if reset = '1' and en = '1' then
       int <= int_lower;
     
     elsif inc = '1' and en = '1' then
