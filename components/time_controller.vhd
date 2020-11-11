@@ -18,7 +18,12 @@ architecture Behavioral of time_controller is
 
 begin
 
-  pm_out <= pm_in;
+  process(pm_in)
+  begin
+    if en = '1' then
+      pm_out <= pm_in;
+    end if;
+  end process;
 
   hr_controller: entity work.int_controller
     generic map(int_lower => 1,
