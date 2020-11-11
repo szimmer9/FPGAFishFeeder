@@ -9,13 +9,16 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity time_controller is
- port (hr_inc, hr_dec, min_inc, min_dec, en, reset : in std_logic;
-       hr, min : out std_logic_vector (5 downto 0));
+ port (hr_inc, hr_dec, min_inc, min_dec, pm_in, en, reset : in std_logic;
+       hr, min : out std_logic_vector (5 downto 0);
+       pm_out : out std_logic);
 end time_controller;
 
 architecture Behavioral of time_controller is
 
 begin
+
+  pm_out <= pm_in;
 
   hr_controller: entity work.int_controller
     generic map(int_lower => 1,
