@@ -25,21 +25,22 @@ begin
   
     if reset = '1' and en = '1' then
       int <= int_lower;
+    end if;
     
-    elsif inc = '1' and en = '1' then
+    if rising_edge(inc) and en = '1' then
       if int = int_upper then
         int <= int_lower;
       else
         int <= int + 1;
       end if;
+    end if;
   
-    elsif dec = '1' and en = '1' then
+    if rising_edge(dec) and en = '1' then
       if int = int_lower then
         int <= int_upper;
       else
         int <= int - 1;
       end if;
-  
     end if;
   end process;
   
