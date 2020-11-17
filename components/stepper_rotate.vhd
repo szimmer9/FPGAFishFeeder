@@ -37,8 +37,7 @@ end stepper_rotate;
 architecture Behavioral of stepper_rotate is
 
   signal sigs : std_logic_vector (3 downto 0) := "0000";
-  -- 20 bit vector for a step interval of roughly 1 mill clock cycles.
-  signal cycles : integer range 0 to step_interval;
+  signal cycles : integer range 0 to step_interval := 0;
 
 begin
 
@@ -70,7 +69,7 @@ begin
   
   step: process(sigs, clk)
   begin
-    if /*en = '1'  and*/ rising_edge(clk) then
+    if rising_edge(clk) then
       step_out <= sigs;
     end if;
   end process step;

@@ -45,7 +45,7 @@ begin
         end if;
       
       elsif curr_state = counting then
-        if cycles = len - 1 then
+        if cycles = len then
           next_state <= waiting;
         end if;
       end if;
