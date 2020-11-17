@@ -18,12 +18,12 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use ieee.numeric_std.all;
 
-entity stepper_control is
+entity stepper_rotate is
   generic(step_interval : integer := 1000000);
   
   port(en, clk : in std_logic;
        step_out : out std_logic_vector (3 downto 0) := "0000");
-end stepper_control;
+end stepper_rotate;
 
 /* Generic Description:
      step_interval: the number of clock cycles that must pass in between steps.
@@ -34,7 +34,7 @@ end stepper_control;
      step_out: signals sent to PMOD STEP.
 */
 
-architecture Behavioral of stepper_control is
+architecture Behavioral of stepper_rotate is
 
   signal sigs : std_logic_vector (3 downto 0) := "0000";
   -- 20 bit vector for a step interval of roughly 1 mill clock cycles.
