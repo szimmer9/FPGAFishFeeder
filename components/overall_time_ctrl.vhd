@@ -7,7 +7,7 @@ entity overall_time_ctrl is
           feed2_op : std_logic_vector (4 downto 0) := "00100";
           feed3_op : std_logic_vector (4 downto 0) := "01000");
   
-  port(hr_inc, hr_dec, min_inc, min_dec, pm, en, reset : in std_logic;
+  port(hr_inc, hr_dec, min_inc, min_dec, pm, en, reset, clk : in std_logic;
        opcode : in std_logic_vector (4 downto 0);
        sys_time, feed_time1, feed_time2, feed_time3 : out std_logic_vector (12 downto 0));
        
@@ -69,6 +69,7 @@ process (opcode)
              pm_in => pm,
              en => sys_en,
              reset => reset,
+             clk => clk,
              hr => sys_time(12 downto 7),
              min => sys_time(6 downto 1),
              pm_out => sys_time(0));
@@ -81,6 +82,7 @@ process (opcode)
              pm_in => pm,
              en => feed1_en,
              reset => reset,
+             clk => clk,
              hr => feed_time1(12 downto 7),
              min => feed_time1(6 downto 1),
              pm_out => feed_time1(0));
@@ -93,6 +95,7 @@ process (opcode)
              pm_in => pm,
              en => feed2_en,
              reset => reset,
+             clk => clk,
              hr => feed_time2(12 downto 7),
              min => feed_time2(6 downto 1),
              pm_out => feed_time2(0));
@@ -105,6 +108,7 @@ process (opcode)
              pm_in => pm,
              en => feed3_en,
              reset => reset,
+             clk => clk,
              hr => feed_time3(12 downto 7),
              min => feed_time3(6 downto 1),
              pm_out => feed_time3(0));
