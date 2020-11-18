@@ -11,6 +11,7 @@ architecture Behavioral of int_controller_tb is
   signal hr_out, min_out : std_logic_vector (5 downto 0) := "000000";
 begin
   reset <= '0';
+  dec <=  '0';
   
   hr_ctrl: entity work.int_controller
     generic map(int_lower => 1,
@@ -22,7 +23,8 @@ begin
              inc => inc,
              dec => dec,
              reset => reset,
-             num_out => hr_out);   
+             num_out => hr_out,
+             clk => clk);   
              
   min_ctrl: entity work.int_controller
     generic map(int_lower => 0,
@@ -34,12 +36,19 @@ begin
              inc => inc,
              dec => dec,
              reset => reset,
-             num_out => min_out);
+             num_out => min_out,
+             clk => clk);
              
   process
   begin
     wait for 0.5 ns;
-    dec <= not dec;
-  end process;                                                                
+    clk <= not clk;
+  end process;
+  
+  process
+  begin
+    wait for 1 ns;
+    inc <= not inc;
+  end process;
 
 end Behavioral;

@@ -12,38 +12,46 @@ entity int_controller is
   generic (int_lower, int_upper : integer;
            num_out_msb, num_out_lsb : integer);
            
-  port (en, reset, inc, dec : in std_logic;
+  port (en, reset, inc, dec, clk : in std_logic;
         num_out : out std_logic_vector (num_out_msb downto num_out_lsb));
 end int_controller;
 
 architecture Behavioral of int_controller is
-  signal int : integer range int_lower to int_upper := int_lower;
-begin
 
-  process(inc, dec, reset)
-  begin
+  signal int : integer range int_lower to int_upper := int_lower;
+  signal inc_edge, dec_edge : std_logic := '0';
   
-    if reset = '1' and en = '1' then
-      int <= int_lower;
-    end if;
+begin
+ 
+  e1: entity work.edge_detector
+    port map(clk => clk, input => inc, edge => inc_edge);
     
-    if rising_edge(inc) and en = '1' then
-      if int = int_upper then
+  e2: entity work.edge_detector
+    port map(clk => clk, input => dec, edge => dec_edge);   
+
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      if reset = '1' and en = '1' then
         int <= int_lower;
-      else
-        int <= int + 1;
-      end if;
-    end if;
+    
+      elsif inc_edge = '1' and en = '1' then
+        if int = int_upper then
+          int <= int_lower;
+        else
+          int <= int + 1;
+        end if;
   
-    if rising_edge(dec) and en = '1' then
-      if int = int_lower then
-        int <= int_upper;
-      else
-        int <= int - 1;
+      elsif dec_edge = '1' and en = '1' then
+        if int = int_lower then
+          int <= int_upper;
+        else
+          int <= int - 1;
+        end if;
       end if;
+      
+      num_out <= std_logic_vector(to_unsigned(int, num_out_msb - num_out_lsb + 1));
     end if;
   end process;
-  
-  num_out <= std_logic_vector(to_unsigned(int, num_out_msb - num_out_lsb + 1));
 
 end Behavioral;
