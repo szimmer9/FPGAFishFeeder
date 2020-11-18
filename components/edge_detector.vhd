@@ -17,7 +17,7 @@ end edge_detector;
 
 architecture Behavioral of edge_detector is
 
-  signal shift_reg : std_logic_vector (2 downto 0) := "0000";
+  signal shift_reg : std_logic_vector (2 downto 0) := "000";
   
 begin
 
