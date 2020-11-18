@@ -9,7 +9,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity time_controller is
- port (hr_inc, hr_dec, min_inc, min_dec, pm_in, en, reset : in std_logic;
+ port (hr_inc, hr_dec, min_inc, min_dec, pm_in, en, reset, clk : in std_logic;
        hr, min : out std_logic_vector (5 downto 0);
        pm_out : out std_logic);
 end time_controller;
@@ -18,9 +18,9 @@ architecture Behavioral of time_controller is
 
 begin
 
-  process(pm_in)
+  process(pm_in, clk)
   begin
-    if en = '1' then
+    if rising_edge(clk) and en = '1' then
       pm_out <= pm_in;
     end if;
   end process;
@@ -35,7 +35,8 @@ begin
              dec => hr_dec,
              en => en,
              reset => reset,
-             num_out => hr);
+             num_out => hr,
+             clk => clk);
              
   min_controller : entity work.int_controller
     generic map(int_lower => 0,
@@ -47,6 +48,7 @@ begin
              dec => min_dec,
              en => en,
              reset => reset,
-             num_out => min);                                           
+             num_out => min,
+             clk => clk);                                           
 
 end Behavioral;
