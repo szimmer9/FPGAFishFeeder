@@ -9,8 +9,10 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity int_controller is
-  generic (int_lower, int_upper : integer;
-           num_out_msb, num_out_lsb : integer);
+  generic (int_lower : integer := 0;
+           int_upper : integer := 9;
+           num_out_msb : integer := 3;
+           num_out_lsb : integer := 0);
            
   port (en, reset, inc, dec, clk : in std_logic;
         num_out : out std_logic_vector (num_out_msb downto num_out_lsb));
