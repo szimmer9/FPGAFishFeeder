@@ -5,7 +5,7 @@
 --  time or any of the three feeding times, outputting this time as a 13-bit 
 --  vector. In the base state, the component simply outputs the system time. 
 --  This component also triggers the feeding protocol whenever the system time 
--- matches any of the three feeding times, assuming they are enabled. 
+--  matches any of the three feeding times, assuming they are enabled. 
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -50,6 +50,7 @@ begin
              pm => pm,
              en => '1',
              reset => reset,
+             clk => clk,
              opcode => opcode,
              sys_time => sys_start_time,
              feed_time1 => feed_time1,
@@ -77,47 +78,53 @@ begin
              
   -- Output appropriate time based on opcode. Enable loads on digital_clock 
   -- entity if needed.
-  set_display_time: process (opcode)
+  set_display_time: process (opcode, clk)
   begin
-    case opcode is
-      when base_state =>
-        clock_ld_en <= '0';
-        time_out <= sys_time;
-      when set_sys_time =>
-        clock_ld_en <= '1';
-        time_out <= sys_time;
-      when set_f1_time =>
-        clock_ld_en <= '0';
-        time_out <= feed_time1;
-      when set_f2_time =>
-        clock_ld_en <= '0';
-        time_out <= feed_time2;
-      when set_f3_time =>
-        clock_ld_en <= '0';
-        time_out <= feed_time3;
-      when others =>
-        clock_ld_en <= '0';
-        time_out <= sys_time;
-    end case;
+    if rising_edge(clk) then
+    
+      case opcode is
+        when base_state =>
+          clock_ld_en <= '0';
+          time_out <= sys_time;
+        when set_sys_time =>
+          clock_ld_en <= '1';
+          time_out <= sys_time;
+        when set_f1_time =>
+          clock_ld_en <= '0';
+          time_out <= feed_time1;
+        when set_f2_time =>
+          clock_ld_en <= '0';
+          time_out <= feed_time2;
+        when set_f3_time =>
+          clock_ld_en <= '0';
+          time_out <= feed_time3;
+        when others =>
+          clock_ld_en <= '0';
+          time_out <= sys_time;
+      end case;
+      
+    end if;
   end process set_display_time;
   
   
   -- This process triggers the stepper whenever the system time equals
   -- any of the feeding times and these times are not disabled.
-  trigger_stepper: process (sys_time, feed_time1, feed_time2, feed_time3)
+  trigger_stepper: process (sys_time, feed_time1, feed_time2, feed_time3, clk)
   begin
-    if sys_time = feed_time1 and f1_enable = '1' then
-      stepper_trigger <= '1';
+    if rising_edge(clk) then
+      if sys_time = feed_time1 and f1_enable = '1' then
+        stepper_trigger <= '1';
       
-    elsif sys_time = feed_time2 and f2_enable = '1' then
-      stepper_trigger <= '1';
+      elsif sys_time = feed_time2 and f2_enable = '1' then
+        stepper_trigger <= '1';
       
-    elsif sys_time = feed_time3 and f3_enable = '1' then
-      stepper_trigger <= '1';
+      elsif sys_time = feed_time3 and f3_enable = '1' then
+        stepper_trigger <= '1';
       
-    else
-      stepper_trigger <= '0';
+      else
+        stepper_trigger <= '0';
       
+      end if;
     end if;
   end process;               
                           
