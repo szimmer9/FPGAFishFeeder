@@ -63,7 +63,7 @@ architecture main of opcode_fsm is
     component stepper_block is
       generic(num_steps : integer := 200;
               step_interval : integer := 1000000);
-      port(stepper_trigger, stepper_trigger2, clk : in std_logic;
+      port(stepper_trigger, clk : in std_logic;
            step_out : out std_logic_vector (3 downto 0));
     end component;
     
@@ -114,8 +114,7 @@ begin
                                      time_out => time_to_display,
                                      stepper_trigger => stepper_go );
                                      
-    motor_control : stepper_block port map( stepper_trigger => stepper_go,
-                                            stepper_trigger2 => stepper_go2, 
+    motor_control : stepper_block port map( stepper_trigger => stepper_go or stepper_go2, 
                                             clk => slow_clock,
                                             step_out => stepper_ctrl );
                                                           
