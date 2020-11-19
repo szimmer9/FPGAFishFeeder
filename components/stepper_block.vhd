@@ -16,7 +16,7 @@ entity stepper_block is
   generic(num_steps : integer := 200;
           step_interval : integer := 1000000);
   
-  port(stepper_trigger, clk : in std_logic;
+  port(stepper_trigger, stepper_trigger2, clk : in std_logic;
        step_out : out std_logic_vector (3 downto 0));
 end stepper_block;
 
@@ -47,7 +47,7 @@ begin
   begin
     -- Synchronize trigger to avoid implementation issues.
     if rising_edge(clk) then
-      t1 <= stepper_trigger;
+      t1 <= stepper_trigger or stepper_trigger2;
       t2 <= t1;
       t3 <= t2;
       r_edge_trigger <= t2 and not t3;
