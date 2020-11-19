@@ -11,48 +11,33 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity opcode_fsm is
     port( op : in std_logic_vector(4 downto 0) := "00000";
-          ft_enable : out std_logic_vector(2 downto 0) := "000";
+          ft_enable : in std_logic_vector(2 downto 0) := "000"; -- switches
+          ft_1, ft_2, ft_3 : out std_logic := '0'; -- LEDs to indicate active
+          manual_override : in std_logic := '0'; -- switch
           am_pm : out std_logic := '0';
           LED_nodes : out std_logic_vector(6 downto 0) := "0000000";
           Anode : out std_logic_vector(3 downto 0) := "0000";
           btnc, btnL, btnR, btnU, btnD : in std_logic;
+          stepper_ctrl : out std_logic_vector(3 downto 0) := "0000";
           clock : in std_logic);
 end entity;
 
 architecture main of opcode_fsm is
-
     --Controls display of time
     component seven_segment_display is
         port ( clock_100Mhz : in STD_LOGIC;-- 100Mhz clock on Basys 3 FPGA board
                Anode_Activate : out STD_LOGIC_VECTOR (3 downto 0);-- 3 Anode signals
                LED_out : out STD_LOGIC_VECTOR (6 downto 0);-- Cathode patterns of 7-segment display
-               displayed_number : in STD_LOGIC_VECTOR (15 downto 0);--4-digit number to be displayed    
+               displayed_number : in STD_LOGIC_VECTOR (12 downto 0);--Number to be displayed
                flash : in STD_LOGIC );--Flag to control flashing of the 7-seg display digits   
     end component seven_segment_display; 
     
-    --Debounce the 5 button presses 
-    component button_debouncer is
-        Port ( ibtnc : in STD_LOGIC;
-               ibtnU : in STD_LOGIC;
-               ibtnD : in STD_LOGIC;
-               ibtnL : in STD_LOGIC;
-               ibtnR : in STD_LOGIC;
-               
-               obtnc : out STD_LOGIC;
-               obtnU : out STD_LOGIC;
-               obtnD : out STD_LOGIC;
-               obtnL : out STD_LOGIC;
-               obtnR : out STD_LOGIC;
-               clk : in STD_LOGIC );
-    end component button_debouncer;
-    --Clock control
-    component digital_clock is
-      port( hr_start, min_start : in std_logic_vector (5 downto 0);
-            pm_start, ld_en : in std_logic;
-            clk : in std_logic; -- To work properly, clk must be 1Hz, but leaving this open makes testing easier. 
-            hr_out, min_out : out std_logic_vector (5 downto 0);
-            pm_out : out std_logic );
-    end component digital_clock;
+    --Debounce the 5 button presses, one for each
+    component debouncer is
+        Port( btn_in, clk : in std_logic;
+              btn_db : out std_logic );
+    end component debouncer;
+    
     --Slows down board clock
     component Clk_1Hz is
       generic(count_lim : integer := 9999999);
@@ -60,137 +45,117 @@ architecture main of opcode_fsm is
             clk_1Hz : out std_logic := '0');
     end component Clk_1Hz;
     
-    signal cp, Up, Dp, Rp, Lp : std_logic := '0';
-    signal digits_to_display : std_logic_vector(15 downto 0);
-    signal flash_enable : std_logic := '0';
-    signal current_state : std_logic_vector(4 downto 0) := "0000";
-    signal curr_hour, curr_min : std_logic_vector(5 downto 0) := "000000";
-    signal ft1_hour, ft2_hour, ft3_hour : std_logic_vector(5 downto 0) := "000000";
-    signal ft1_min, ft2_min, ft3_min : std_logic_vector(5 downto 0) := "000000";
-    signal slow_clock : std_logic := '1';
+    -- Controls current time and feeding times
+    component time_block is
+      generic(base_state : std_logic_vector (4 downto 0) := "00000";
+              set_sys_time : std_logic_vector (4 downto 0) := "00001";
+              set_f1_time : std_logic_vector (4 downto 0) := "00010";
+              set_f2_time : std_logic_vector (4 downto 0) := "00100";
+              set_f3_time : std_logic_vector (4 downto 0) := "01000");
+      port(hr_inc, hr_dec, min_inc, min_dec, pm, reset, clk : in std_logic;
+           f1_enable, f2_enable, f3_enable : in std_logic;
+           opcode : in std_logic_vector (4 downto 0);
+           time_out : out std_logic_vector (12 downto 0);
+           stepper_trigger : out std_logic);
+    end component;
+    
+    -- Controls the motor through PMOD attachment
+    component stepper_block is
+      generic(num_steps : integer := 200;
+              step_interval : integer := 1000000);
+      port(stepper_trigger, clk : in std_logic;
+           step_out : out std_logic_vector (3 downto 0));
+    end component;
+    
+    signal slow_clock : std_logic := '0'; -- 1Hz clock
+    signal inc_hour, dec_hour, inc_min, dec_min, cen : std_logic := '0'; -- signals to handle changing time
+    signal reset_flag : std_logic := '0';
+    signal time_to_display : std_logic_vector (12 downto 0);
+    signal stepper_go, flash_enable : std_logic := '0';
+    
+    signal current_state : std_logic_vector (4 downto 0) := "00000";
 begin
-
-    -- Controls debouncing of all button presses
-    debounce : button_debouncer 
-    port map( ibtnc => btnc,
-              ibtnU => btnU,
-              ibtnD => btnD, 
-              ibtnL => btnL, 
-              ibtnR => btnR,
-              obtnc => cp,
-              obtnU => Up,
-              obtnD => Dp,
-              obtnL => Lp,
-              obtnR => Rp,
-              clk => clock);
-    -- Controls seven-segment display
-    sseg : seven_segment_display
-    port map( clock_100Mhz => clock,
-              Anode_Activate => Anode, 
-              LED_out => LED_nodes,
-              displayed_number => digits_to_display,
-              flash => flash_enable );
-    -- Time module
-    keep_time : digital_clock
-    port map( hr_start => "000000",
-              min_start => "000000",
-              pm_start => '0',
-              ld_en => '0',
-              hr_out => curr_hour,
-              min_out => curr_min,
-              clk => slow_clock );
-    -- Slows down the board clock to 1Hz
-    onehz_clock : Clk_1Hz
-    port map( clk => clock,
-              clk_1hz => slow_clock );
-              
-    fsm : process(cp)
-        variable reset_count : integer := 0; --implement multiple presses to clear? 3x?
+    -- Slow down the clock to seconds
+    one_hz_clock : Clk_1Hz port map( clk => clock,
+                                     clk_1Hz => slow_clock );
+    -- Debounce the 5 button presses
+    debounce_hour_up : debouncer port map( btn_in => btnU,
+                                           clk => clock,
+                                           btn_db => inc_hour);
+    debounce_hour_down : debouncer port map( btn_in => btnD,
+                                             clk => clock,
+                                             btn_db => dec_hour);
+    debounce_min_up : debouncer port map( btn_in => btnR,
+                                          clk => clock,
+                                          btn_db => inc_min );                                       
+    debounce_min_down : debouncer port map( btn_in => btnL,
+                                            clk => clock,
+                                            btn_db => dec_min );
+    debounce_center : debouncer port map( btn_in => btnC,
+                                          clk => clock,
+                                          btn_db => cen);                                                                        
+    -- Maintain times and time adjustments
+    keep_time : time_block port map( hr_inc => inc_hour,
+                                     hr_dec => dec_hour,
+                                     min_inc => inc_min,
+                                     min_dec => dec_min,
+                                     pm => am_pm,
+                                     reset => reset_flag,
+                                     clk => slow_clock,
+                                     f1_enable => ft_enable(0),
+                                     f2_enable => ft_enable(1),
+                                     f3_enable => ft_enable(2),
+                                     opcode => current_state,
+                                     time_out => time_to_display,
+                                     stepper_trigger => stepper_go );
+    motor_control : stepper_block port map( stepper_trigger => stepper_go, 
+                                            clk => slow_clock,
+                                            step_out => stepper_ctrl );
+                                                          
+    sseg : seven_segment_display port map( clock_100Mhz => clock,
+                                           Anode_Activate => Anode,
+                                           LED_out => LED_nodes,
+                                           displayed_number => time_to_display,
+                                           flash => flash_enable );
+    -- enable LEDs based off switch input
+    ft_1 <= ft_enable(0);
+    ft_2 <= ft_enable(1);
+    ft_3 <= ft_enable(2);
+    
+    fsm : process
     begin
-        if rising_edge(cp) then
-            if current_state = op then--perform toggling
-                case current_state is
-                    when "00001" => am_pm <= not am_pm;
-                    when "00010" => ft_enable(0) <= not ft_enable(0);
-                    when "00100" => ft_enable(1) <= not ft_enable(1);
-                    when "01000" => ft_enable(2) <= not ft_enable(2);
-                    when "10000" => --clear everything
-                        curr_hour <= "00000";
-                        curr_min  <= "00000";
-                        ft1_hour  <= "00000";
-                        ft1_min   <= "00000";
-                        ft2_hour  <= "00000";
-                        ft2_min   <= "00000";
-                        ft3_hour  <= "00000";
-                        ft3_min   <= "00000";
-                        am_pm     <= '0';
-                        ft_enable <= "000";                        
-                end case;
-            else 
-                case current_state is--switching the state based on op
-                    when "00000" =>--normal operation
-                        if op = "00001" or op = "00010" or op = "00100" or op = "01000" then
-                            current_state <= op;
-                            flash_enable <= '1';
-                        end if;
-                    when "00001" | "00010" | "00100" | "01000" =>--set time
-                        if op = "00000" then
-                            current_state <= "00000";
-                            flash_enable <= '0';
-                        end if;--otherwise, do nothing
-                end case; 
+        if rising_edge(cen) then
+            if current_state = "00000" then -- allow switch to a valid state
+                 if op = "00001" or op = "00010" or op = "00100" or op = "01000" then
+                    current_state <= op;
+                    flash_enable <= '1';
+                 elsif op = "10000" then
+                    current_state <= op;
+                 end if;
+            -- if a time change state, can change back to normal state
+            elsif (current_state = "00001") or (current_state = "00010") or (current_state = "00100") or (current_state = "01000") then
+                if op = "00000" then 
+                    current_state <= "00000";
+                    flash_enable <= '0';
+                end if;
+            -- if reset and push the center button, 
+            elsif current_state = op and op = "10000" then -- reset pulse sent to time_block
+                reset_flag <= '1';
+                wait for 10ns;
+                reset_flag <= '0';
+            elsif current_state = "10000" and op = "00000" then -- go back to main state
+                current_state <= "00000";
             end if;
+        else
+            if current_state = "00000" then
+                -- listen for manual override
+                if manual_override = '1' then -- send feed signal to stepper block
+                    stepper_go <= '1';
+                    wait for 10ns;
+                    stepper_go <= '0';
+                 end if;
+             end if;
         end if;
     end process fsm;
 
-    change_set_time : process(Up, Dp, Lp, Rp)
-    begin
-            if rising_edge(Up) then--increase minute
-               case current_state is
-                    when "00001" => curr_min <= std_logic_vector(unsigned(curr_min) + 1);
-                    when "00010" => ft1_min <= std_logic_vector(unsigned(curr_min) + 1);
-                    when "00100" => ft2_min <= std_logic_vector(unsigned(curr_min) + 1);
-                    when "01000" => ft3_min <= std_logic_vector(unsigned(curr_min) + 1);
-                end case;
-            elsif rising_edge(Dp) then--decrease minute
-                case current_state is
-                    when "00001" => curr_min <= std_logic_vector(unsigned(curr_min) - 1);
-                    when "00010" => ft1_min <= std_logic_vector(unsigned(curr_min) - 1);
-                    when "00100" => ft2_min <= std_logic_vector(unsigned(curr_min) - 1);
-                    when "01000" => ft3_min <= std_logic_vector(unsigned(curr_min) - 1);
-                end case;
-            elsif rising_edge(Lp) then--increase hour
-                case current_state is
-                    when "00001" => curr_hour <= std_logic_vector(unsigned(curr_min) + 1);
-                    when "00010" => ft1_hour <= std_logic_vector(unsigned(curr_min) + 1);
-                    when "00100" => ft2_hour <= std_logic_vector(unsigned(curr_min) + 1);
-                    when "01000" => ft3_hour <= std_logic_vector(unsigned(curr_min) + 1);
-                end case;
-            elsif rising_edge(Rp) then--decrease hour
-                case current_state is
-                    when "00001" => curr_hour <= std_logic_vector(unsigned(curr_min) - 1);
-                    when "00010" => ft1_hour <= std_logic_vector(unsigned(curr_min) - 1);
-                    when "00100" => ft2_hour <= std_logic_vector(unsigned(curr_min) - 1);
-                    when "01000" => ft3_hour <= std_logic_vector(unsigned(curr_min) - 1);
-                end case;
-            end if;
-    end process change_set_time;
-    
-    --Controls what digit is sent to the 7-seg display
-    --Need to set up BCD
-    set_digit : process
-    begin
-        case current_state is
-            when "00000" =>
-                
-            when "00001" =>
-            
-            when "00010" => 
-            
-            when "00100" => 
-            
-            when "01000" =>
-        end case;
-    end process set_digit;
-    
 end architecture main;
