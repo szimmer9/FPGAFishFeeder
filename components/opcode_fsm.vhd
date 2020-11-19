@@ -63,16 +63,21 @@ architecture main of opcode_fsm is
     component stepper_block is
       generic(num_steps : integer := 200;
               step_interval : integer := 1000000);
-      port(stepper_trigger, clk : in std_logic;
+      port(stepper_trigger, stepper_trigger2, clk : in std_logic;
            step_out : out std_logic_vector (3 downto 0));
+    end component;
+    
+    component edge_detector is
+        port(clk, input : in std_logic;
+            edge : out std_logic);
     end component;
     
     signal slow_clock : std_logic := '0'; -- 1Hz clock
     signal inc_hour, dec_hour, inc_min, dec_min, cen : std_logic := '0'; -- signals to handle changing time
     signal reset_flag : std_logic := '0';
     signal time_to_display : std_logic_vector (12 downto 0);
-    signal stepper_go, flash_enable : std_logic := '0';
-    
+    signal stepper_go, stepper_go2, flash_enable : std_logic := '0';
+    signal cenEdge : std_logic := '0';
     signal current_state : std_logic_vector (4 downto 0) := "00000";
 begin
     -- Slow down the clock to seconds
@@ -108,7 +113,9 @@ begin
                                      opcode => current_state,
                                      time_out => time_to_display,
                                      stepper_trigger => stepper_go );
-    motor_control : stepper_block port map( stepper_trigger => stepper_go, 
+                                     
+    motor_control : stepper_block port map( stepper_trigger => stepper_go,
+                                            stepper_trigger2 => stepper_go2, 
                                             clk => slow_clock,
                                             step_out => stepper_ctrl );
                                                           
@@ -122,9 +129,13 @@ begin
     ft_2 <= ft_enable(1);
     ft_3 <= ft_enable(2);
     
+    edgedetector : edge_detector port map(  clk => clock,
+                                            input => cen,
+                                            edge => cenEdge);
+    
     fsm : process
     begin
-        if rising_edge(cen) then
+        if(cenEdge = '1') then
             if current_state = "00000" then -- allow switch to a valid state
                  if op = "00001" or op = "00010" or op = "00100" or op = "01000" then
                     current_state <= op;
@@ -150,9 +161,9 @@ begin
             if current_state = "00000" then
                 -- listen for manual override
                 if manual_override = '1' then -- send feed signal to stepper block
-                    stepper_go <= '1';
+                    stepper_go2 <= '1';
                     wait for 10ns;
-                    stepper_go <= '0';
+                    stepper_go2 <= '0';
                  end if;
              end if;
         end if;
