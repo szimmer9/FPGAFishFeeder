@@ -132,10 +132,12 @@ begin
                                             input => cen,
                                             edge => cenEdge);
     
-    fsm : process
+    fsm : process (cenEdge, manual_override)
     begin
         if(cenEdge = '1') then
             if current_state = "00000" then -- allow switch to a valid state
+                 reset_flag <= '0';
+                 
                  if op = "00001" or op = "00010" or op = "00100" or op = "01000" then
                     current_state <= op;
                     flash_enable <= '1';
@@ -144,6 +146,8 @@ begin
                  end if;
             -- if a time change state, can change back to normal state
             elsif (current_state = "00001") or (current_state = "00010") or (current_state = "00100") or (current_state = "01000") then
+                reset_flag <= '0';
+                
                 if op = "00000" then 
                     current_state <= "00000";
                     flash_enable <= '0';
@@ -151,19 +155,16 @@ begin
             -- if reset and push the center button, 
             elsif current_state = op and op = "10000" then -- reset pulse sent to time_block
                 reset_flag <= '1';
-                wait for 10ns;
-                reset_flag <= '0';
+                --wait for 10ns;
+                --reset_flag <= '0';
             elsif current_state = "10000" and op = "00000" then -- go back to main state
+                reset_flag <= '0';
                 current_state <= "00000";
             end if;
         else
             if current_state = "00000" then
                 -- listen for manual override
-                if manual_override = '1' then -- send feed signal to stepper block
-                    stepper_go2 <= '1';
-                    wait for 10ns;
-                    stepper_go2 <= '0';
-                 end if;
+                stepper_go2 <= manual_override;
              end if;
         end if;
     end process fsm;
