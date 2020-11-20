@@ -10,13 +10,13 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity Clk_1Hz is
-  generic(count_lim : integer := 9999999);
+  generic(count_lim : integer := 100000000);
   port(clk : in std_logic := '1';
        clk_1Hz : out std_logic := '0');
 end Clk_1Hz;
 
 architecture Behavioral of Clk_1Hz is
-  signal counts : integer range 0 to 10000000 := 0;
+  signal counts : integer range 0 to 100000000 := 0;
 begin
 
   process (clk)
