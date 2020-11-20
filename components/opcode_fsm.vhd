@@ -14,6 +14,7 @@ entity opcode_fsm is
           ft_enable : in std_logic_vector(2 downto 0) := "000"; -- switches
           ft_1, ft_2, ft_3 : out std_logic := '0'; -- LEDs to indicate active
           manual_override : in std_logic := '0'; -- switch
+          am_pmIN : in std_logic := '0';
           am_pm : out std_logic := '0';
           LED_nodes : out std_logic_vector(6 downto 0) := "0000000";
           Anode : out std_logic_vector(3 downto 0) := "0000";
@@ -100,7 +101,7 @@ begin
                                      hr_dec => dec_hour,
                                      min_inc => inc_min,
                                      min_dec => dec_min,
-                                     pm => am_pm,
+                                     pm => am_pmIN,
                                      reset => reset_flag,
                                      clk => clock,
                                      f1_enable => ft_enable(0),
@@ -127,6 +128,8 @@ begin
     edgedetector : edge_detector port map(  clk => clock,
                                             input => cen,
                                             edge => cenEdge);
+                                            
+    am_pm <= time_to_display(0);
     
     fsm : process(clock)
     begin
