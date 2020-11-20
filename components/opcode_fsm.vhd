@@ -72,7 +72,6 @@ architecture main of opcode_fsm is
             edge : out std_logic);
     end component;
     
-    signal slow_clock : std_logic := '0'; -- 1Hz clock
     signal inc_hour, dec_hour, inc_min, dec_min, cen : std_logic := '0'; -- signals to handle changing time
     signal reset_flag : std_logic := '0';
     signal time_to_display : std_logic_vector (12 downto 0);
@@ -80,9 +79,6 @@ architecture main of opcode_fsm is
     signal cenEdge : std_logic := '0';
     signal current_state : std_logic_vector (4 downto 0) := "00000";
 begin
-    -- Slow down the clock to seconds
-    one_hz_clock : Clk_1Hz port map( clk => clock,
-                                     clk_1Hz => slow_clock );
     -- Debounce the 5 button presses
     debounce_hour_up : debouncer port map( btn_in => btnU,
                                            clk => clock,
@@ -106,7 +102,7 @@ begin
                                      min_dec => dec_min,
                                      pm => am_pm,
                                      reset => reset_flag,
-                                     clk => slow_clock,
+                                     clk => clock,
                                      f1_enable => ft_enable(0),
                                      f2_enable => ft_enable(1),
                                      f3_enable => ft_enable(2),
@@ -115,7 +111,7 @@ begin
                                      stepper_trigger => stepper_go );
                                      
     motor_control : stepper_block port map( stepper_trigger => stepper_go or stepper_go2, 
-                                            clk => slow_clock,
+                                            clk => clock,
                                             step_out => stepper_ctrl );
                                                           
     sseg : seven_segment_display port map( clock_100Mhz => clock,
