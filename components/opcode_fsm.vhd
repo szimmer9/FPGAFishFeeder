@@ -132,8 +132,9 @@ begin
                                             input => cen,
                                             edge => cenEdge);
     
-    fsm : process (cenEdge, manual_override)
+    fsm : process(clock)
     begin
+    if(rising_edge(clock)) then
         if(cenEdge = '1') then
             if current_state = "00000" then -- allow switch to a valid state
                  reset_flag <= '0';
@@ -167,6 +168,7 @@ begin
                 stepper_go2 <= manual_override;
              end if;
         end if;
+    end if;
     end process fsm;
 
 end architecture main;
