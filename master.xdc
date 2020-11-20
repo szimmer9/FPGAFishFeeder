@@ -66,3 +66,6 @@ set_property PACKAGE_PIN C16 [get_ports {stepper_ctrl[0]}]
 set_property PACKAGE_PIN V19 [get_ports ft_1]
 set_property PACKAGE_PIN U19 [get_ports ft_2]
 set_property PACKAGE_PIN E19 [get_ports ft_3]
+
+set_property PACKAGE_PIN V17 [get_ports am_pmIN]
+set_property IOSTANDARD LVCMOS33 [get_ports am_pmIN]
